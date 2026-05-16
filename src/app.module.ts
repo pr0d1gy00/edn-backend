@@ -9,9 +9,10 @@ import { EpisodesModule } from './episodes/episodes.module';
 import { GuestsModule } from './guests/guests.module';
 import { InsideJokesModule } from './inside-jokes/inside-jokes.module';
 import { TourShowsModule } from './tour-shows/tour-shows.module';
+import { MediaModule } from './media/media.module';
 
 @Module({
-  imports: [PrismaModule, UsersModule, StoriesModule, VotesModule, EpisodesModule, GuestsModule, InsideJokesModule, TourShowsModule],
+  imports: [PrismaModule, UsersModule, StoriesModule, VotesModule, EpisodesModule, GuestsModule, InsideJokesModule, TourShowsModule, MediaModule],
   controllers: [AppController],
   providers: [AppService],
 })
