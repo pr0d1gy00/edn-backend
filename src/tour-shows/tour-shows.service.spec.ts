@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { TourShowsService } from './tour-shows.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { MediaService } from '../media/media.service';
 import { NotFoundException } from '@nestjs/common';
 
 describe('TourShowsService', () => {
@@ -29,6 +30,12 @@ describe('TourShowsService', () => {
     },
   };
 
+  const mockMediaService = {
+    upload: jest.fn(),
+    remove: jest.fn(),
+    findByEntity: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -36,6 +43,10 @@ describe('TourShowsService', () => {
         {
           provide: PrismaService,
           useValue: mockPrismaService,
+        },
+        {
+          provide: MediaService,
+          useValue: mockMediaService,
         },
       ],
     }).compile();

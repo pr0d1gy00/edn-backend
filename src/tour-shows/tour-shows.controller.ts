@@ -10,7 +10,10 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  UseInterceptors,
+  UploadedFiles,
 } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { TourShowsService } from './tour-shows.service';
 import { CreateTourShowDto } from './dto/create-tour-show.dto';
 import { UpdateTourShowDto } from './dto/update-tour-show.dto';
@@ -35,15 +38,26 @@ export class TourShowsController {
   @Post()
   @UseGuards(RolesGuard)
   @Roles('ADMIN')
+  @UseInterceptors(FilesInterceptor('files', 10, { limits: { fileSize: 10 * 1024 * 1024 } }))
   @HttpCode(HttpStatus.CREATED)
-  create(@Body() dto: CreateTourShowDto) {
+  create(
+    @Body() dto: CreateTourShowDto,
+    @UploadedFiles() files: Express.Multer.File[],
+  ) {
+    dto.files = files ?? [];
     return this.tourShowsService.create(dto);
   }
 
   @Patch(':id')
   @UseGuards(RolesGuard)
   @Roles('ADMIN')
-  update(@Param('id') id: string, @Body() dto: UpdateTourShowDto) {
+  @UseInterceptors(FilesInterceptor('files', 10, { limits: { fileSize: 10 * 1024 * 1024 } }))
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateTourShowDto,
+    @UploadedFiles() files: Express.Multer.File[],
+  ) {
+    dto.files = files ?? [];
     return this.tourShowsService.update(id, dto);
   }
 

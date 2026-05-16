@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { MediaService } from '../media/media.service';
 import { CreateTourShowDto } from './dto/create-tour-show.dto';
 import { UpdateTourShowDto } from './dto/update-tour-show.dto';
 import { QueryTourShowDto } from './dto/query-tour-show.dto';
@@ -7,7 +8,10 @@ import { TourShow } from '@prisma/client';
 
 @Injectable()
 export class TourShowsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly media: MediaService,
+  ) {}
 
   async findAll(query: QueryTourShowDto): Promise<TourShow[]> {
     const where: any = {};
@@ -39,7 +43,7 @@ export class TourShowsService {
   }
 
   async create(dto: CreateTourShowDto): Promise<TourShow> {
-    return this.prisma.tourShow.create({
+    const tourShow = await this.prisma.tourShow.create({
       data: {
         city: dto.city,
         country: dto.country,
@@ -51,6 +55,14 @@ export class TourShowsService {
         longitude: dto.longitude ?? null,
       },
     });
+
+    // Upload images if provided
+    if (dto.files && dto.files.length > 0) {
+      const sortOrders = dto.sortOrders ?? dto.files.map((_, i) => i);
+      await this.uploadImages(tourShow.id, dto.files, sortOrders);
+    }
+
+    return tourShow;
   }
 
   async update(id: string, dto: UpdateTourShowDto): Promise<TourShow> {
@@ -62,7 +74,7 @@ export class TourShowsService {
       throw new NotFoundException(`TourShow with ID "${id}" not found`);
     }
 
-    return this.prisma.tourShow.update({
+    const updated = await this.prisma.tourShow.update({
       where: { id },
       data: {
         ...(dto.city !== undefined && { city: dto.city }),
@@ -79,6 +91,14 @@ export class TourShowsService {
         ...(dto.longitude !== undefined && { longitude: dto.longitude }),
       },
     });
+
+    // Upload new images if provided
+    if (dto.files && dto.files.length > 0) {
+      const sortOrders = dto.sortOrders ?? dto.files.map((_, i) => i);
+      await this.uploadImages(updated.id, dto.files, sortOrders);
+    }
+
+    return updated;
   }
 
   async remove(id: string): Promise<TourShow> {
@@ -91,5 +111,16 @@ export class TourShowsService {
     }
 
     return this.prisma.tourShow.delete({ where: { id } });
+  }
+
+  private async uploadImages(
+    tourShowId: string,
+    files: Express.Multer.File[],
+    sortOrders: number[],
+  ): Promise<void> {
+    const uploadPromises = files.map((file, index) =>
+      this.media.upload(file, 'TOUR_SHOW', tourShowId, index === 0, sortOrders[index] ?? index),
+    );
+    await Promise.all(uploadPromises);
   }
 }

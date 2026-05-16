@@ -37,6 +37,7 @@ export class MediaService {
     entityType: string,
     entityId: string,
     isPrimary: boolean = false,
+    sortOrder: number = 0,
   ): Promise<Media> {
     this.validateFile(file);
 
@@ -77,6 +78,7 @@ export class MediaService {
         url,
         key,
         isPrimary,
+        sortOrder,
       },
     });
   }

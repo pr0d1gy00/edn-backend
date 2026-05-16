@@ -48,4 +48,12 @@ export class CreateEpisodeDto {
   @IsInt()
   @Min(0)
   durationSeconds?: number;
+
+  /** Array of image files (optional). Frontend sends as multipart. */
+  @IsOptional()
+  files?: Express.Multer.File[];
+
+  /** Sort order for each file, matching array index. Example: [0, 1, 2] */
+  @IsOptional()
+  sortOrders?: number[];
 }

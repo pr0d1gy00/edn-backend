@@ -4,13 +4,17 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { MediaService } from '../media/media.service';
 import { CreateEpisodeDto } from './dto/create-episode.dto';
 import { UpdateEpisodeDto } from './dto/update-episode.dto';
 import { Episode, Guest } from '@prisma/client';
 
 @Injectable()
 export class EpisodesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly media: MediaService,
+  ) {}
 
   async findAll(platformType?: string): Promise<Episode[]> {
     return this.prisma.episode.findMany({
@@ -36,7 +40,7 @@ export class EpisodesService {
 
   async create(dto: CreateEpisodeDto): Promise<Episode> {
     try {
-      return await this.prisma.episode.create({
+      const episode = await this.prisma.episode.create({
         data: {
           title: dto.title,
           platformType: dto.platformType,
@@ -49,6 +53,14 @@ export class EpisodesService {
           durationSeconds: dto.durationSeconds ?? null,
         },
       });
+
+      // Upload images if provided
+      if (dto.files && dto.files.length > 0) {
+        const sortOrders = dto.sortOrders ?? dto.files.map((_, i) => i);
+        await this.uploadImages(episode.id, dto.files, sortOrders);
+      }
+
+      return episode;
     } catch (error: any) {
       if (error?.code === 'P2002') {
         const target = error.meta?.target as string[] | undefined;
@@ -73,7 +85,7 @@ export class EpisodesService {
     }
 
     try {
-      return await this.prisma.episode.update({
+      const updated = await this.prisma.episode.update({
         where: { id },
         data: {
           ...(dto.title !== undefined && { title: dto.title }),
@@ -103,6 +115,14 @@ export class EpisodesService {
           }),
         },
       });
+
+      // Upload new images if provided
+      if (dto.files && dto.files.length > 0) {
+        const sortOrders = dto.sortOrders ?? dto.files.map((_, i) => i);
+        await this.uploadImages(updated.id, dto.files, sortOrders);
+      }
+
+      return updated;
     } catch (error: any) {
       if (error?.code === 'P2002') {
         const target = error.meta?.target as string[] | undefined;
@@ -192,5 +212,22 @@ export class EpisodesService {
     }
 
     return episode.guests;
+  }
+
+  private async uploadImages(
+    episodeId: string,
+    files: Express.Multer.File[],
+    sortOrders: number[],
+  ): Promise<void> {
+    const uploadPromises = files.map((file, index) =>
+      this.media.upload(
+        file,
+        'EPISODE',
+        episodeId,
+        index === 0,
+        sortOrders[index] ?? index,
+      ),
+    );
+    await Promise.all(uploadPromises);
   }
 }

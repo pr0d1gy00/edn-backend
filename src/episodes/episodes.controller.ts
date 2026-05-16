@@ -10,7 +10,10 @@ import {
   HttpCode,
   HttpStatus,
   UseGuards,
+  UseInterceptors,
+  UploadedFiles,
 } from '@nestjs/common';
+import { FilesInterceptor } from '@nestjs/platform-express';
 import { EpisodesService } from './episodes.service';
 import { CreateEpisodeDto } from './dto/create-episode.dto';
 import { UpdateEpisodeDto } from './dto/update-episode.dto';
@@ -35,15 +38,26 @@ export class EpisodesController {
   @Post()
   @UseGuards(RolesGuard)
   @Roles('ADMIN')
+  @UseInterceptors(FilesInterceptor('files', 10, { limits: { fileSize: 10 * 1024 * 1024 } }))
   @HttpCode(HttpStatus.CREATED)
-  create(@Body() dto: CreateEpisodeDto) {
+  create(
+    @Body() dto: CreateEpisodeDto,
+    @UploadedFiles() files: Express.Multer.File[],
+  ) {
+    dto.files = files ?? [];
     return this.episodesService.create(dto);
   }
 
   @Patch(':id')
   @UseGuards(RolesGuard)
   @Roles('ADMIN')
-  update(@Param('id') id: string, @Body() dto: UpdateEpisodeDto) {
+  @UseInterceptors(FilesInterceptor('files', 10, { limits: { fileSize: 10 * 1024 * 1024 } }))
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateEpisodeDto,
+    @UploadedFiles() files: Express.Multer.File[],
+  ) {
+    dto.files = files ?? [];
     return this.episodesService.update(id, dto);
   }
 
