@@ -1,5 +1,10 @@
 import { randomUUID } from 'crypto';
-import { Injectable, BadRequestException, NotFoundException, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
@@ -22,7 +27,8 @@ export class MediaService {
   constructor(private readonly prisma: PrismaService) {
     this.s3 = new S3Client({
       region: process.env.IDRIVE_REGION ?? 'us-west-1',
-      endpoint: process.env.IDRIVE_ENDPOINT ?? 'https://s3.us-west-1.idrivee2.com',
+      endpoint:
+        process.env.IDRIVE_ENDPOINT ?? 'https://s3.us-west-1.idrivee2.com',
       credentials: {
         accessKeyId: process.env.IDRIVE_ACCESS_KEY ?? '',
         secretAccessKey: process.env.IDRIVE_SECRET_KEY ?? '',
@@ -106,10 +112,7 @@ export class MediaService {
     await this.prisma.media.delete({ where: { id } });
   }
 
-  async findByEntity(
-    entityType: string,
-    entityId: string,
-  ): Promise<Media[]> {
+  async findByEntity(entityType: string, entityId: string): Promise<Media[]> {
     const mediaEntityType = entityType as MediaEntityType;
     if (!Object.values(MediaEntityType).includes(mediaEntityType)) {
       throw new BadRequestException(
