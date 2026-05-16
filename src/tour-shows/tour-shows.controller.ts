@@ -9,11 +9,14 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import { TourShowsService } from './tour-shows.service';
 import { CreateTourShowDto } from './dto/create-tour-show.dto';
 import { UpdateTourShowDto } from './dto/update-tour-show.dto';
 import { QueryTourShowDto } from './dto/query-tour-show.dto';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
 
 @Controller('tour-shows')
 export class TourShowsController {
@@ -30,6 +33,8 @@ export class TourShowsController {
   }
 
   @Post()
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN')
   @HttpCode(HttpStatus.CREATED)
   create(@Body() dto: CreateTourShowDto) {
     return this.tourShowsService.create(dto);

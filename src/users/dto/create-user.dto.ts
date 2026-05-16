@@ -3,9 +3,11 @@ import {
   IsEmail,
   IsOptional,
   IsUrl,
+  IsEnum,
   MaxLength,
   IsNotEmpty,
 } from 'class-validator';
+import { Role } from '@prisma/client';
 
 export class CreateUserDto {
   @IsString()
@@ -20,4 +22,8 @@ export class CreateUserDto {
   @IsOptional()
   @IsUrl()
   avatarUrl?: string;
+
+  @IsOptional()
+  @IsEnum(Role)
+  role?: Role;
 }

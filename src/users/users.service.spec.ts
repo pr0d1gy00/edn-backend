@@ -12,6 +12,7 @@ describe('UsersService', () => {
     username: 'testuser',
     email: 'test@example.com',
     avatarUrl: null,
+    role: 'USER',
     createdAt: new Date('2025-01-01'),
   };
 
@@ -107,6 +108,7 @@ describe('UsersService', () => {
           username: 'newuser',
           email: 'new@example.com',
           avatarUrl: undefined,
+          role: undefined,
         },
       });
     });

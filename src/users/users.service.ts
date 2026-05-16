@@ -33,6 +33,7 @@ export class UsersService {
           username: dto.username,
           email: dto.email,
           avatarUrl: dto.avatarUrl,
+          role: dto.role,
         },
       });
     } catch (error: any) {
@@ -64,6 +65,7 @@ export class UsersService {
           ...(dto.username !== undefined && { username: dto.username }),
           ...(dto.email !== undefined && { email: dto.email }),
           ...(dto.avatarUrl !== undefined && { avatarUrl: dto.avatarUrl }),
+          ...(dto.role !== undefined && { role: dto.role }),
         },
       });
     } catch (error: any) {

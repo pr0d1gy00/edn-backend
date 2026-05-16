@@ -9,11 +9,14 @@ import {
   Query,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import { EpisodesService } from './episodes.service';
 import { CreateEpisodeDto } from './dto/create-episode.dto';
 import { UpdateEpisodeDto } from './dto/update-episode.dto';
 import { QueryEpisodeDto } from './dto/query-episode.dto';
+import { RolesGuard } from '../auth/roles.guard';
+import { Roles } from '../auth/roles.decorator';
 
 @Controller('episodes')
 export class EpisodesController {
@@ -30,17 +33,23 @@ export class EpisodesController {
   }
 
   @Post()
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN')
   @HttpCode(HttpStatus.CREATED)
   create(@Body() dto: CreateEpisodeDto) {
     return this.episodesService.create(dto);
   }
 
   @Patch(':id')
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN')
   update(@Param('id') id: string, @Body() dto: UpdateEpisodeDto) {
     return this.episodesService.update(id, dto);
   }
 
   @Delete(':id')
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN')
   remove(@Param('id') id: string) {
     return this.episodesService.remove(id);
   }
