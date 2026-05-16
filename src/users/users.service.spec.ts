@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UsersService } from './users.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { NotFoundException, ConflictException } from '@nestjs/common';
+import { NotFoundException, ConflictException, ForbiddenException } from '@nestjs/common';
 
 describe('UsersService', () => {
   let service: UsersService;
@@ -149,6 +149,50 @@ describe('UsersService', () => {
 
       await expect(service.create(createDto)).rejects.toThrow(
         'Database connection failed',
+      );
+    });
+
+    it('should allow ADMIN user creation when caller is ADMIN', async () => {
+      const adminDto = { ...createDto, role: 'ADMIN' as const };
+      mockPrismaService.user.create.mockResolvedValue({
+        ...mockUser,
+        username: 'newuser',
+        email: 'new@example.com',
+        role: 'ADMIN',
+      });
+
+      const result = await service.create(adminDto, 'ADMIN');
+
+      expect(result.role).toBe('ADMIN');
+      expect(mockPrismaService.user.create).toHaveBeenCalledWith({
+        data: {
+          username: 'newuser',
+          email: 'new@example.com',
+          avatarUrl: undefined,
+          role: 'ADMIN',
+        },
+      });
+    });
+
+    it('should throw ForbiddenException when non-admin tries to create ADMIN user', async () => {
+      const adminDto = { ...createDto, role: 'ADMIN' as const };
+
+      await expect(service.create(adminDto, 'USER')).rejects.toThrow(
+        ForbiddenException,
+      );
+      await expect(service.create(adminDto, 'USER')).rejects.toThrow(
+        'Only administrators can create admin users',
+      );
+    });
+
+    it('should throw ForbiddenException when no caller role and ADMIN user creation attempted', async () => {
+      const adminDto = { ...createDto, role: 'ADMIN' as const };
+
+      await expect(service.create(adminDto)).rejects.toThrow(
+        ForbiddenException,
+      );
+      await expect(service.create(adminDto)).rejects.toThrow(
+        'Only administrators can create admin users',
       );
     });
   });

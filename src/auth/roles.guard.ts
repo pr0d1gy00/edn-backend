@@ -20,11 +20,15 @@ export class RolesGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const user = request.user;
 
-    if (!user || !user.role) {
+    // Resolve user role: first from request.user (JWT/auth middleware), fallback to X-User-Role header
+    const userRole: string | undefined =
+      user?.role || request.headers['x-user-role'];
+
+    if (!userRole) {
       throw new ForbiddenException('Access denied: user role not available');
     }
 
-    const hasRole = requiredRoles.some((role) => user.role === role);
+    const hasRole = requiredRoles.some((role) => userRole === role);
     if (!hasRole) {
       throw new ForbiddenException(
         `Access denied: requires one of roles: ${requiredRoles.join(', ')}`,

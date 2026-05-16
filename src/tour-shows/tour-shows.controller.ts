@@ -41,11 +41,15 @@ export class TourShowsController {
   }
 
   @Patch(':id')
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN')
   update(@Param('id') id: string, @Body() dto: UpdateTourShowDto) {
     return this.tourShowsService.update(id, dto);
   }
 
   @Delete(':id')
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN')
   remove(@Param('id') id: string) {
     return this.tourShowsService.remove(id);
   }

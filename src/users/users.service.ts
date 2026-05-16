@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -26,7 +27,14 @@ export class UsersService {
     return user;
   }
 
-  async create(dto: CreateUserDto): Promise<User> {
+  async create(dto: CreateUserDto, callerRole?: string): Promise<User> {
+    // If trying to create an ADMIN user, verify the caller is ADMIN
+    if (dto.role === 'ADMIN' && callerRole !== 'ADMIN') {
+      throw new ForbiddenException(
+        'Only administrators can create admin users',
+      );
+    }
+
     try {
       return await this.prisma.user.create({
         data: {

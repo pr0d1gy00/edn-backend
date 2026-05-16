@@ -12,12 +12,12 @@ describe('RolesGuard', () => {
     guard = new RolesGuard(reflector);
   });
 
-  function createMockContext(user?: { role?: Role }): ExecutionContext {
+  function createMockContext(user?: { role?: Role }, headers?: Record<string, string>): ExecutionContext {
     return {
       getHandler: jest.fn(),
       getClass: jest.fn(),
       switchToHttp: jest.fn().mockReturnValue({
-        getRequest: jest.fn().mockReturnValue({ user: user ?? undefined }),
+        getRequest: jest.fn().mockReturnValue({ user: user ?? undefined, headers: headers ?? {} }),
       }),
     } as unknown as ExecutionContext;
   }
@@ -79,6 +79,22 @@ describe('RolesGuard', () => {
       const context = createMockContext({ role: 'USER' });
 
       expect(guard.canActivate(context)).toBe(true);
+    });
+
+    it('should allow when user role comes from X-User-Role header (fallback)', () => {
+      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(['ADMIN']);
+
+      const context = createMockContext(undefined, { 'x-user-role': 'ADMIN' });
+
+      expect(guard.canActivate(context)).toBe(true);
+    });
+
+    it('should deny when X-User-Role header has USER but ADMIN is required', () => {
+      jest.spyOn(reflector, 'getAllAndOverride').mockReturnValue(['ADMIN']);
+
+      const context = createMockContext(undefined, { 'x-user-role': 'USER' });
+
+      expect(() => guard.canActivate(context)).toThrow(ForbiddenException);
     });
   });
 });
