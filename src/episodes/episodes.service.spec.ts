@@ -34,6 +34,21 @@ describe('EpisodesService', () => {
     guests: [mockGuest],
   };
 
+  const mockInsideJoke = {
+    id: 'joke-789',
+    episodeId: 'episode-123',
+    startTimeStamp: '00:14:23',
+    endTimeStamp: '00:16:45',
+    keyConcept: 'Chupis',
+    transcriptContext: 'Cuando Juani menciona las Chupis',
+  };
+
+  const mockEpisodeFull = {
+    ...mockEpisode,
+    guests: [mockGuest],
+    insideJokes: [mockInsideJoke],
+  };
+
   const mockPrismaService = {
     episode: {
       findMany: jest.fn(),
@@ -163,7 +178,7 @@ describe('EpisodesService', () => {
 
   describe('findAll', () => {
     it('should return paginated episodes ordered by publishedAt desc', async () => {
-      const episodes = [mockEpisode, { ...mockEpisode, id: 'ep-2' }];
+      const episodes = [mockEpisodeFull, { ...mockEpisodeFull, id: 'ep-2' }];
       mockPrismaService.episode.findMany.mockResolvedValue(episodes);
       mockPrismaService.episode.count.mockResolvedValue(2);
 
@@ -179,21 +194,23 @@ describe('EpisodesService', () => {
         orderBy: { publishedAt: 'desc' },
         skip: 0,
         take: 10,
+        include: { guests: true, insideJokes: true },
       });
     });
 
     it('should filter by platformType when provided', async () => {
-      mockPrismaService.episode.findMany.mockResolvedValue([mockEpisode]);
+      mockPrismaService.episode.findMany.mockResolvedValue([mockEpisodeFull]);
       mockPrismaService.episode.count.mockResolvedValue(1);
 
       const result = await service.findAll('YOUTUBE', 1, 10);
 
-      expect(result.data).toEqual([mockEpisode]);
+      expect(result.data).toEqual([mockEpisodeFull]);
       expect(mockPrismaService.episode.findMany).toHaveBeenCalledWith({
         where: { platformType: 'YOUTUBE' },
         orderBy: { publishedAt: 'desc' },
         skip: 0,
         take: 10,
+        include: { guests: true, insideJokes: true },
       });
     });
 
@@ -209,7 +226,7 @@ describe('EpisodesService', () => {
     });
 
     it('should correctly calculate skip for page 2', async () => {
-      mockPrismaService.episode.findMany.mockResolvedValue([mockEpisode]);
+      mockPrismaService.episode.findMany.mockResolvedValue([mockEpisodeFull]);
       mockPrismaService.episode.count.mockResolvedValue(15);
 
       const result = await service.findAll(undefined, 2, 5);
@@ -222,6 +239,7 @@ describe('EpisodesService', () => {
         orderBy: { publishedAt: 'desc' },
         skip: 5,
         take: 5,
+        include: { guests: true, insideJokes: true },
       });
     });
   });

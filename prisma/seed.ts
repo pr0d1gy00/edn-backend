@@ -12,63 +12,11 @@ const pool = new Pool({
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
-// ──────────────────────────────────────────────
-// UUIDs (solo chars hex válidos: 0-9 a-f)
-// ──────────────────────────────────────────────
-// Users
-const ADMIN_ID  = 'a0000000-0000-4000-8000-000000000001';
-const USER_1_ID  = 'a0000000-0000-4000-8000-000000000002';
-const USER_2_ID  = 'a0000000-0000-4000-8000-000000000003';
-const USER_3_ID  = 'a0000000-0000-4000-8000-000000000004';
-
-// Guests (5)
-const GUEST_1_ID = 'b0000000-0000-4000-8000-000000000001';
-const GUEST_2_ID = 'b0000000-0000-4000-8000-000000000002';
-const GUEST_3_ID = 'b0000000-0000-4000-8000-000000000003';
-const GUEST_4_ID = 'b0000000-0000-4000-8000-000000000004';
-const GUEST_5_ID = 'b0000000-0000-4000-8000-000000000005';
-
-// Episodes (6)
-const EPISODE_1_ID = 'c0000000-0000-4000-8000-000000000001';
-const EPISODE_2_ID = 'c0000000-0000-4000-8000-000000000002';
-const EPISODE_3_ID = 'c0000000-0000-4000-8000-000000000003';
-const EPISODE_4_ID = 'c0000000-0000-4000-8000-000000000004';
-const EPISODE_5_ID = 'c0000000-0000-4000-8000-000000000005';
-const EPISODE_6_ID = 'c0000000-0000-4000-8000-000000000006';
-
-// Tour Shows (5)
-const TOUR_1_ID = 'd0000000-0000-4000-8000-000000000001';
-const TOUR_2_ID = 'd0000000-0000-4000-8000-000000000002';
-const TOUR_3_ID = 'd0000000-0000-4000-8000-000000000003';
-const TOUR_4_ID = 'd0000000-0000-4000-8000-000000000004';
-const TOUR_5_ID = 'd0000000-0000-4000-8000-000000000005';
-
-// Stories (5)
-const STORY_1_ID = 'e0000000-0000-4000-8000-000000000001';
-const STORY_2_ID = 'e0000000-0000-4000-8000-000000000002';
-const STORY_3_ID = 'e0000000-0000-4000-8000-000000000003';
-const STORY_4_ID = 'e0000000-0000-4000-8000-000000000004';
-const STORY_5_ID = 'e0000000-0000-4000-8000-000000000005';
-
-// Inside Jokes (3)
-const JOKE_1_ID = 'f0000000-0000-4000-8000-000000000001';
-const JOKE_2_ID = 'f0000000-0000-4000-8000-000000000002';
-const JOKE_3_ID = 'f0000000-0000-4000-8000-000000000003';
-
-// Media (10 imágenes)
-const MEDIA_EP1_ID    = '10000000-0000-4000-8000-000000000001';
-const MEDIA_EP2_ID    = '10000000-0000-4000-8000-000000000002';
-const MEDIA_EP3_ID    = '10000000-0000-4000-8000-000000000003';
-const MEDIA_EP4_ID    = '10000000-0000-4000-8000-000000000004';
-const MEDIA_EP5_ID    = '10000000-0000-4000-8000-000000000005';
-const MEDIA_TOUR1_ID  = '20000000-0000-4000-8000-000000000001';
-const MEDIA_TOUR2_ID  = '20000000-0000-4000-8000-000000000002';
-const MEDIA_TOUR3_ID  = '20000000-0000-4000-8000-000000000003';
-const MEDIA_TOUR4_ID  = '20000000-0000-4000-8000-000000000004';
-const MEDIA_TOUR5_ID  = '20000000-0000-4000-8000-000000000005';
+// Helpers
+const generateId = (prefix: string, index: number) => `${prefix}0000000-0000-4000-8000-0000000000${index.toString(16).padStart(2, '0')}`;
 
 async function main() {
-  console.log('🌱 Seeding EDN Backend database...\n');
+  console.log('🌱 Seeding EDN Backend database with MASSIVE data...\n');
 
   // ── Clean existing data ──────────────────────
   await prisma.storyVote.deleteMany();
@@ -81,445 +29,148 @@ async function main() {
   await prisma.user.deleteMany();
   console.log('✅ Cleaned existing data');
 
-  // ── Hash passwords ───────────────────────────
   const adminPassword = await bcrypt.hash('Admin123!', 12);
   const userPassword  = await bcrypt.hash('User123!', 12);
 
-  // ── USERS ───────────────────────────────────
-  await prisma.user.createMany({
-    data: [
-      {
-        id: ADMIN_ID,
-        username: 'admin',
-        email: 'admin@esdenita.com',
-        password: adminPassword,
-        role: Role.ADMIN,
-        avatarUrl: 'https://picsum.photos/seed/admin-avatar/200/200',
-      },
-      {
-        id: USER_1_ID,
-        username: 'luisito',
-        email: 'luisito@esdenita.com',
-        password: userPassword,
-        role: Role.USER,
-        avatarUrl: 'https://picsum.photos/seed/luisito-avatar/200/200',
-      },
-      {
-        id: USER_2_ID,
-        username: 'juani',
-        email: 'juani@esdenita.com',
-        password: userPassword,
-        role: Role.USER,
-        avatarUrl: 'https://picsum.photos/seed/juani-avatar/200/200',
-      },
-      {
-        id: USER_3_ID,
-        username: 'chico',
-        email: 'chico@esdenita.com',
-        password: userPassword,
-        role: Role.USER,
-        avatarUrl: 'https://picsum.photos/seed/chico-avatar/200/200',
-      },
-    ],
-  });
-  console.log('✅ Created 4 users (admin + 3 users)');
+  // ── USERS (15) ───────────────────────────────────
+  const usersData = Array.from({ length: 15 }).map((_, i) => ({
+    id: i === 0 ? 'a0000000-0000-4000-8000-000000000001' : generateId('a', i + 1),
+    username: i === 0 ? 'admin' : `user_${i}`,
+    email: i === 0 ? 'admin@esdenita.com' : `user${i}@esdenita.com`,
+    password: i === 0 ? adminPassword : userPassword,
+    role: i === 0 ? Role.ADMIN : Role.USER,
+    avatarUrl: `https://picsum.photos/seed/user${i}/200/200`,
+  }));
+  await prisma.user.createMany({ data: usersData });
+  console.log(`✅ Created ${usersData.length} users`);
 
-  // ── GUESTS ───────────────────────────────────
-  await prisma.guest.createMany({
-    data: [
-      {
-        id: GUEST_1_ID,
-        name: 'MrBeast',
-        bio: 'Youtuber, filántropo y empresario. Known por sus videos de desafíos extremos y donaciones a causas importantes.',
-        twitterHandle: 'MrBeast',
-        instagramHandle: 'mrbeast',
-      },
-      {
-        id: GUEST_2_ID,
-        name: 'Luisito Communications',
-        bio: 'Creador de contenido mexicano, conocido por sus videos de viajes, gastronomía y crítica constructiva.',
-        twitterHandle: 'luisitocomunica',
-        instagramHandle: 'luisitocomunica',
-      },
-      {
-        id: GUEST_3_ID,
-        name: 'Chico Groove',
-        bio: 'Músico y creador de contenido. Una de las voces más auténticas de la generación Z.',
-        twitterHandle: 'chicogroove',
-        instagramHandle: 'chicogroove',
-      },
-      {
-        id: GUEST_4_ID,
-        name: 'Dross',
-        bio: 'Creador de contenido, escritor y filósofo moderno. Conocido por sus reflexiones sobre la vida y el universo.',
-        twitterHandle: 'drossrotz',
-        instagramHandle: 'drossrotz',
-      },
-      {
-        id: GUEST_5_ID,
-        name: 'Vegetta777',
-        bio: 'Youtuber español de gaming y contenido variado. Uno de los creadores más influyentes de habla hispana.',
-        twitterHandle: 'Vegetta777',
-        instagramHandle: 'vegetta777',
-      },
-    ],
-  });
-  console.log('✅ Created 5 guests');
+  // ── GUESTS (15) ───────────────────────────────────
+  const guestsData = Array.from({ length: 15 }).map((_, i) => ({
+    id: generateId('b', i + 1),
+    name: `Guest ${i + 1}`,
+    bio: `Bio descriptiva del invitado ${i + 1}. Creador de contenido, artista o amigo de la casa con anécdotas increíbles.`,
+    twitterHandle: `guest${i + 1}_tw`,
+    instagramHandle: `guest${i + 1}_ig`,
+  }));
+  await prisma.guest.createMany({ data: guestsData });
+  console.log(`✅ Created ${guestsData.length} guests`);
 
-  // ── EPISODES ─────────────────────────────────
-  await prisma.episode.createMany({
-    data: [
-      {
-        id: EPISODE_1_ID,
-        episodeNumber: 100,
-        title: 'El Podcast 100: MrBeast Live desde su estudio',
-        description: 'Episodio histórico celebrando los 100 episodios de Esdenita. MrBeast se une para una conversación épica sobre filantropía, Youtube y el futuro del contenido.',
-        platformType: PlatformType.YOUTUBE,
-        contentUrl: 'https://www.youtube.com/watch?v=abc100',
-        thumbnailUrl: 'https://picsum.photos/seed/episode100/800/450',
-        publishedAt: new Date('2026-01-15'),
-        isExclusive: false,
-        durationSeconds: 5400,
-      },
-      {
-        id: EPISODE_2_ID,
-        episodeNumber: 99,
-        title: 'Episode 99: Luisito Returns — Viaje a Tokio',
-        description: 'Luisito regresa a Esdenita para contarnos todo sobre su último viaje a Japón. Comida, cultura y muchos insights.',
-        platformType: PlatformType.YOUTUBE,
-        contentUrl: 'https://www.youtube.com/watch?v=abc99',
-        thumbnailUrl: 'https://picsum.photos/seed/episode99/800/450',
-        publishedAt: new Date('2026-01-08'),
-        isExclusive: false,
-        durationSeconds: 4800,
-      },
-      {
-        id: EPISODE_3_ID,
-        episodeNumber: 98,
-        title: 'Episode 98: Chico Groove — La Generación Z Habla',
-        description: 'Chico Groove se sienta con nosotros para hablar sobre la escena musical actual, la presión de las redes sociales y su nuevo álbum.',
-        platformType: PlatformType.SPOTIFY,
-        contentUrl: 'https://open.spotify.com/episode/abc98',
-        thumbnailUrl: 'https://picsum.photos/seed/episode98/800/450',
-        publishedAt: new Date('2025-12-20'),
-        isExclusive: false,
-        durationSeconds: 3600,
-      },
-      {
-        id: EPISODE_4_ID,
-        episodeNumber: 97,
-        title: 'Episode 97: Dross — El Filósofo Moderno',
-        description: 'Dross llega con su profundidad característica para hablar sobre existencialismo, la soledad creativa y cómo ser feliz en el mundo actual.',
-        platformType: PlatformType.PATREON,
-        contentUrl: 'https://www.patreon.com/posts/episodio-97',
-        thumbnailUrl: 'https://picsum.photos/seed/episode97/800/450',
-        publishedAt: new Date('2025-12-10'),
-        isExclusive: true,
-        durationSeconds: 4200,
-      },
-      {
-        id: EPISODE_5_ID,
-        episodeNumber: 96,
-        title: 'Episode 96: Vegetta777 — Gaming y Filosofía',
-        description: 'Vegetta777 habla sobre cómo llegó a ser uno de los mayores creadores de contenido en español, sus juegos favoritos y la comunidad hispanohablante.',
-        platformType: PlatformType.YOUTUBE,
-        contentUrl: 'https://www.youtube.com/watch?v=abc96',
-        thumbnailUrl: 'https://picsum.photos/seed/episode96/800/450',
-        publishedAt: new Date('2025-11-28'),
-        isExclusive: false,
-        durationSeconds: 5100,
-      },
-      {
-        id: EPISODE_6_ID,
-        episodeNumber: null,
-        title: 'Special: Trip a CDMX — Detrás de Cámaras',
-        description: 'Mini-clip especial con los mejores momentos de nuestro viaje a Ciudad de México. Incluye escenas eliminadas y bloopers.',
-        platformType: PlatformType.YOUTUBE,
-        contentUrl: 'https://www.youtube.com/watch?v=abc-special1',
-        thumbnailUrl: 'https://picsum.photos/seed/episode-special/800/450',
-        publishedAt: new Date('2025-11-15'),
-        isExclusive: false,
-        durationSeconds: 900,
-      },
-    ],
-  });
-  console.log('✅ Created 6 episodes (5 numbered + 1 special)');
+  // ── EPISODES (20) ─────────────────────────────────
+  const platformTypes = [PlatformType.YOUTUBE, PlatformType.SPOTIFY, PlatformType.PATREON];
+  const episodesData = Array.from({ length: 20 }).map((_, i) => ({
+    id: generateId('c', i + 1),
+    episodeNumber: 100 - i,
+    title: `Episode ${100 - i}: Gran invitado especial y anécdotas locas`,
+    description: `Descripción detallada del episodio ${100 - i}. Hablamos sobre temas variados, la vida, anécdotas del internet y mucho más. Un episodio para el recuerdo.`,
+    platformType: platformTypes[i % platformTypes.length],
+    contentUrl: `https://example.com/episode/${100 - i}`,
+    thumbnailUrl: `https://picsum.photos/seed/episode${100 - i}/800/450`,
+    publishedAt: new Date(Date.now() - i * 7 * 24 * 60 * 60 * 1000), // back in time
+    isExclusive: i % 4 === 0,
+    durationSeconds: 3000 + (i * 100),
+  }));
+  await prisma.episode.createMany({ data: episodesData });
+  console.log(`✅ Created ${episodesData.length} episodes`);
 
   // ── EPISODE-GUEST RELATIONSHIPS ─────────────
-  await prisma.$executeRawUnsafe(`
-    INSERT INTO "_EpisodeGuests" ("A", "B") VALUES
-    ('${EPISODE_1_ID}', '${GUEST_1_ID}'),
-    ('${EPISODE_2_ID}', '${GUEST_2_ID}'),
-    ('${EPISODE_3_ID}', '${GUEST_3_ID}'),
-    ('${EPISODE_4_ID}', '${GUEST_4_ID}'),
-    ('${EPISODE_5_ID}', '${GUEST_5_ID}'),
-    ('${EPISODE_1_ID}', '${GUEST_2_ID}')
-  `);
-  console.log('✅ Linked episodes ↔ guests');
-
-  // ── INSIDE JOKES ──────────────────────────────
-  await prisma.insideJoke.createMany({
-    data: [
-      {
-        id: JOKE_1_ID,
-        episodeId: EPISODE_1_ID,
-        startTimeStamp: '00:14:23',
-        endTimeStamp: '00:16:45',
-        keyConcept: 'Chupis',
-        transcriptContext: 'Cuando Juani menciona que le gustaría probar las Chupis en el oxxo a las 3am',
-      },
-      {
-        id: JOKE_2_ID,
-        episodeId: EPISODE_1_ID,
-        startTimeStamp: '00:45:10',
-        endTimeStamp: '00:48:30',
-        keyConcept: "Leo's Deodorant",
-        transcriptContext: "Leo saca su desodorante favorito y dice que es su 'talismán' antes de cada podcast",
-      },
-      {
-        id: JOKE_3_ID,
-        episodeId: EPISODE_2_ID,
-        startTimeStamp: '00:22:00',
-        endTimeStamp: '00:25:15',
-        keyConcept: 'Sushi Japonés',
-        transcriptContext: "Luisito explica por qué el sushi en Tokio es mejor que en México, y Juani no está de acuerdo",
-      },
-    ],
+  // Assign 1-2 guests to each episode
+  const relations: string[] = [];
+  episodesData.forEach((ep, i) => {
+    const guest1 = guestsData[i % guestsData.length].id;
+    relations.push(`('${ep.id}', '${guest1}')`);
+    if (i % 3 === 0) { // Every third episode gets two guests
+      const guest2 = guestsData[(i + 1) % guestsData.length].id;
+      relations.push(`('${ep.id}', '${guest2}')`);
+    }
   });
-  console.log('✅ Created 3 inside jokes');
+  if (relations.length > 0) {
+    await prisma.$executeRawUnsafe(`
+      INSERT INTO "_EpisodeGuests" ("A", "B") VALUES
+      ${relations.join(', ')}
+    `);
+  }
+  console.log(`✅ Linked episodes ↔ guests (${relations.length} connections)`);
 
-  // ── TOUR SHOWS ────────────────────────────────
-  await prisma.tourShow.createMany({
-    data: [
-      {
-        id: TOUR_1_ID,
-        city: 'Buenos Aires',
-        country: 'Argentina',
-        venueName: 'Teatro Gran Rex',
-        showDate: new Date('2026-03-20T21:00:00Z'),
-        ticketUrl: 'https://ticketera.com/edn-ba',
-        ticketStatus: TicketStatus.AVAILABLE,
-        latitude: -34.603723,
-        longitude: -58.383591,
-      },
-      {
-        id: TOUR_2_ID,
-        city: 'Ciudad de México',
-        country: 'México',
-        venueName: 'Auditorio Nacional',
-        showDate: new Date('2026-04-05T20:00:00Z'),
-        ticketUrl: 'https://ticketera.com/edn-cdmx',
-        ticketStatus: TicketStatus.FEW_TICKETS,
-        latitude: 19.432608,
-        longitude: -99.133209,
-      },
-      {
-        id: TOUR_3_ID,
-        city: 'Madrid',
-        country: 'España',
-        venueName: 'WiZink Center',
-        showDate: new Date('2026-04-18T21:00:00Z'),
-        ticketUrl: 'https://ticketera.com/edn-madrid',
-        ticketStatus: TicketStatus.AVAILABLE,
-        latitude: 40.423089,
-        longitude: -3.671782,
-      },
-      {
-        id: TOUR_4_ID,
-        city: 'Bogotá',
-        country: 'Colombia',
-        venueName: 'Ágora Bogotá',
-        showDate: new Date('2026-05-02T20:30:00Z'),
-        ticketUrl: 'https://ticketera.com/edn-bogota',
-        ticketStatus: TicketStatus.AVAILABLE,
-        latitude: 4.711025,
-        longitude: -74.072092,
-      },
-      {
-        id: TOUR_5_ID,
-        city: 'São Paulo',
-        country: 'Brasil',
-        venueName: 'Arena SP',
-        showDate: new Date('2026-05-15T21:00:00Z'),
-        ticketUrl: 'https://ticketera.com/edn-sp',
-        ticketStatus: TicketStatus.SOLD_OUT,
-        latitude: -23.550593,
-        longitude: -46.633386,
-      },
-    ],
-  });
-  console.log('✅ Created 5 tour shows');
+  // ── INSIDE JOKES (20) ──────────────────────────────
+  const jokesData = Array.from({ length: 20 }).map((_, i) => ({
+    id: generateId('f', i + 1),
+    episodeId: episodesData[i % episodesData.length].id,
+    startTimeStamp: `00:${String(10 + i).padStart(2, '0')}:00`,
+    endTimeStamp: `00:${String(12 + i).padStart(2, '0')}:00`,
+    keyConcept: `Chiste interno legendario #${i + 1}`,
+    transcriptContext: `Este es el contexto detallado de cómo surgió el chiste interno #${i + 1} durante la grabación del episodio. Un momento verdaderamente hilarante.`,
+  }));
+  await prisma.insideJoke.createMany({ data: jokesData });
+  console.log(`✅ Created ${jokesData.length} inside jokes`);
 
-  // ── COMMUNITY STORIES ───────────────────────
-  await prisma.communityStory.createMany({
-    data: [
-      {
-        id: STORY_1_ID,
-        userId: USER_1_ID,
-        title: 'Mi peor cita fue en un funeral',
-        content: 'Resulta que mi cita del app me llevó a lo que creía era una boda. Resulta ser el funeral de su ex. Cuando llegué estaba el féretro en el salón. La comida era excelente.',
-        category: 'Bad dates',
-        submittedAt: new Date('2026-01-10'),
-        isApproved: true,
-      },
-      {
-        id: STORY_2_ID,
-        userId: USER_2_ID,
-        title: 'Esa vez que me quedé dormido en el uber',
-        content: 'Me dormí en el uber después de la prepa y desperté en Pachuca. Eran las 4am. El conductor me dijo que llevaba 2 horas hablando conmigo. Le creí.',
-        category: 'Awkward moments',
-        submittedAt: new Date('2026-01-12'),
-        isApproved: true,
-      },
-      {
-        id: STORY_3_ID,
-        userId: null, // anonymous
-        title: 'Le mandé screenshot de mi ex a mi mamá por error',
-        content: 'Estaba mandándole un screenshot a mi amiga sobre lo loco que estaba mi ex. Mi mamá estaba al lado. Ahora thinks que sigo con él. A la fecha no me deja en paz.',
-        category: 'Awkward moments',
-        submittedAt: new Date('2026-01-14'),
-        isApproved: true,
-      },
-      {
-        id: STORY_4_ID,
-        userId: USER_3_ID,
-        title: 'Fui a trabajar sin pantalón',
-        content: 'Me desperté tarde, me vestí con prisas en la oscuridad. Cuando llegué a la oficina me di cuenta que estaba en calcetas. Tuve que pedirle prestada una falda a mi compañera.',
-        category: 'Bad dates',
-        submittedAt: new Date('2026-01-15'),
-        isApproved: true,
-      },
-      {
-        id: STORY_5_ID,
-        userId: null, // anonymous
-        title: 'Le confesé mis sentimientos a mi crush en el grupo de la uni',
-        content: 'Le mandé un audio de 5 minutos diciéndole que me gustaba. Lo mandé al grupo de la universidad completo. 300 personas听到 todo. Ahora está trending en twitter.',
-        category: 'Bad dates',
-        submittedAt: new Date('2026-01-16'),
-        isApproved: true,
-      },
-    ],
-  });
-  console.log('✅ Created 5 community stories (approved)');
+  // ── TOUR SHOWS (15) ────────────────────────────────
+  const cities = ['Buenos Aires', 'CDMX', 'Madrid', 'Bogotá', 'Santiago', 'Lima', 'Miami', 'NY', 'Barcelona', 'Montevideo', 'Caracas', 'Medellín', 'Valencia', 'Guadalajara', 'Monterrey'];
+  const countries = ['Argentina', 'México', 'España', 'Colombia', 'Chile', 'Perú', 'USA', 'USA', 'España', 'Uruguay', 'Venezuela', 'Colombia', 'España', 'México', 'México'];
+  const ticketStatuses = [TicketStatus.AVAILABLE, TicketStatus.FEW_TICKETS, TicketStatus.SOLD_OUT];
+  const tourData = Array.from({ length: 15 }).map((_, i) => ({
+    id: generateId('d', i + 1),
+    city: cities[i],
+    country: countries[i],
+    venueName: `Teatro Gran ${cities[i]}`,
+    showDate: new Date(Date.now() + (i + 1) * 14 * 24 * 60 * 60 * 1000), // future dates
+    ticketUrl: `https://ticketera.com/edn-${cities[i].toLowerCase().replace(' ', '-')}`,
+    ticketStatus: ticketStatuses[i % ticketStatuses.length],
+    latitude: -34.0 + (i * 2.5), // Mock coordinates
+    longitude: -58.0 + (i * 2.5),
+  }));
+  await prisma.tourShow.createMany({ data: tourData });
+  console.log(`✅ Created ${tourData.length} tour shows`);
 
-  // ── STORY VOTES ──────────────────────────────
-  await prisma.storyVote.createMany({
-    data: [
-      { userId: USER_2_ID, storyId: STORY_1_ID, voteValue: 1 },
-      { userId: USER_3_ID, storyId: STORY_1_ID, voteValue: 1 },
-      { userId: USER_1_ID, storyId: STORY_2_ID, voteValue: 1 },
-      { userId: USER_2_ID, storyId: STORY_3_ID, voteValue: -1 },
-      { userId: USER_1_ID, storyId: STORY_4_ID, voteValue: 1 },
-      { userId: USER_3_ID, storyId: STORY_5_ID, voteValue: 1 },
-    ],
-  });
-  console.log('✅ Created 6 story votes');
+  // ── COMMUNITY STORIES (25) ───────────────────────
+  const storyCategories = ['Bad dates', 'Awkward moments', 'Funny fails', 'Random encounters', 'Workplace disasters'];
+  const storiesData = Array.from({ length: 25 }).map((_, i) => ({
+    id: generateId('e', i + 1),
+    userId: i % 3 === 0 ? null : usersData[(i % (usersData.length - 1)) + 1].id, // 1/3 anonymous, 2/3 authenticated
+    title: `Historia loca de la comunidad #${i + 1}`,
+    content: `Esta es la historia detallada número ${i + 1}. Me pasó algo muy gracioso y fuera de contexto, así que lo quería compartir con la comunidad de EDN. Sucedió hace un par de semanas y no me lo puedo sacar de la cabeza.`,
+    category: storyCategories[i % storyCategories.length],
+    submittedAt: new Date(Date.now() - i * 24 * 60 * 60 * 1000),
+    isApproved: i % 5 !== 0, // 80% approved
+  }));
+  await prisma.communityStory.createMany({ data: storiesData });
+  console.log(`✅ Created ${storiesData.length} community stories`);
 
-  // ── MEDIA (episode images) ─────────────────────
-  await prisma.media.createMany({
-    data: [
-      {
-        id: MEDIA_EP1_ID,
-        entityType: MediaEntityType.EPISODE,
-        entityId: EPISODE_1_ID,
-        url: 'https://picsum.photos/seed/ep1-thumb/1200/675',
-        key: 'media/episodes/ep1-thumb.jpg',
-        isPrimary: true,
-        sortOrder: 0,
-      },
-      {
-        id: MEDIA_EP2_ID,
-        entityType: MediaEntityType.EPISODE,
-        entityId: EPISODE_2_ID,
-        url: 'https://picsum.photos/seed/ep2-thumb/1200/675',
-        key: 'media/episodes/ep2-thumb.jpg',
-        isPrimary: true,
-        sortOrder: 0,
-      },
-      {
-        id: MEDIA_EP3_ID,
-        entityType: MediaEntityType.EPISODE,
-        entityId: EPISODE_3_ID,
-        url: 'https://picsum.photos/seed/ep3-thumb/1200/675',
-        key: 'media/episodes/ep3-thumb.jpg',
-        isPrimary: true,
-        sortOrder: 0,
-      },
-      {
-        id: MEDIA_EP4_ID,
-        entityType: MediaEntityType.EPISODE,
-        entityId: EPISODE_4_ID,
-        url: 'https://picsum.photos/seed/ep4-thumb/1200/675',
-        key: 'media/episodes/ep4-thumb.jpg',
-        isPrimary: true,
-        sortOrder: 0,
-      },
-      {
-        id: MEDIA_EP5_ID,
-        entityType: MediaEntityType.EPISODE,
-        entityId: EPISODE_5_ID,
-        url: 'https://picsum.photos/seed/ep5-thumb/1200/675',
-        key: 'media/episodes/ep5-thumb.jpg',
-        isPrimary: true,
-        sortOrder: 0,
-      },
-    ],
-  });
-  console.log('✅ Created 5 episode images');
+  // ── STORY VOTES (40) ──────────────────────────────
+  const votesData = Array.from({ length: 40 }).map((_, i) => ({
+    userId: usersData[(i % (usersData.length - 1)) + 1].id, // only authenticated users can vote
+    storyId: storiesData[i % storiesData.length].id,
+    voteValue: i % 4 === 0 ? -1 : 1, // 75% positive votes, 25% negative
+  }));
+  // Filter unique combinations
+  const uniqueVotesData = votesData.filter((v, i, a) => a.findIndex(t => (t.userId === v.userId && t.storyId === v.storyId)) === i);
+  await prisma.storyVote.createMany({ data: uniqueVotesData });
+  console.log(`✅ Created ${uniqueVotesData.length} story votes`);
 
-  // ── MEDIA (tour show images) ───────────────────
-  await prisma.media.createMany({
-    data: [
-      {
-        id: MEDIA_TOUR1_ID,
-        entityType: MediaEntityType.TOUR_SHOW,
-        entityId: TOUR_1_ID,
-        url: 'https://picsum.photos/seed/tour-ba-venue/1200/800',
-        key: 'media/tours/tour-ba-venue.jpg',
-        isPrimary: true,
-        sortOrder: 0,
-      },
-      {
-        id: MEDIA_TOUR2_ID,
-        entityType: MediaEntityType.TOUR_SHOW,
-        entityId: TOUR_2_ID,
-        url: 'https://picsum.photos/seed/tour-cdmx-venue/1200/800',
-        key: 'media/tours/tour-cdmx-venue.jpg',
-        isPrimary: true,
-        sortOrder: 0,
-      },
-      {
-        id: MEDIA_TOUR3_ID,
-        entityType: MediaEntityType.TOUR_SHOW,
-        entityId: TOUR_3_ID,
-        url: 'https://picsum.photos/seed/tour-madrid-venue/1200/800',
-        key: 'media/tours/tour-madrid-venue.jpg',
-        isPrimary: true,
-        sortOrder: 0,
-      },
-      {
-        id: MEDIA_TOUR4_ID,
-        entityType: MediaEntityType.TOUR_SHOW,
-        entityId: TOUR_4_ID,
-        url: 'https://picsum.photos/seed/tour-bogota-venue/1200/800',
-        key: 'media/tours/tour-bogota-venue.jpg',
-        isPrimary: true,
-        sortOrder: 0,
-      },
-      {
-        id: MEDIA_TOUR5_ID,
-        entityType: MediaEntityType.TOUR_SHOW,
-        entityId: TOUR_5_ID,
-        url: 'https://picsum.photos/seed/tour-sp-venue/1200/800',
-        key: 'media/tours/tour-sp-venue.jpg',
-        isPrimary: true,
-        sortOrder: 0,
-      },
-    ],
-  });
-  console.log('✅ Created 5 tour show images');
+  // ── MEDIA (20 images for episodes, 15 for tours) ─────────────────────
+  const episodeMediaData = Array.from({ length: 20 }).map((_, i) => ({
+    id: generateId('1', i + 1),
+    entityType: MediaEntityType.EPISODE,
+    entityId: episodesData[i].id,
+    url: `https://picsum.photos/seed/epmedia${i}/1200/675`,
+    key: `media/episodes/ep-media-${i}.jpg`,
+    isPrimary: true,
+    sortOrder: 0,
+  }));
+  
+  const tourMediaData = Array.from({ length: 15 }).map((_, i) => ({
+    id: generateId('2', i + 1),
+    entityType: MediaEntityType.TOUR_SHOW,
+    entityId: tourData[i].id,
+    url: `https://picsum.photos/seed/tourmedia${i}/1200/800`,
+    key: `media/tours/tour-media-${i}.jpg`,
+    isPrimary: true,
+    sortOrder: 0,
+  }));
+  
+  await prisma.media.createMany({ data: [...episodeMediaData, ...tourMediaData] });
+  console.log(`✅ Created ${episodeMediaData.length + tourMediaData.length} media items`);
 
-  console.log('\n🎉 Seeding complete!\n');
+  console.log('\n🎉 Seeding complete with massive data!\n');
   console.log('📋 Credentials to login:');
   console.log('   Username: admin');
   console.log('   Password: Admin123!');

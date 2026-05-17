@@ -26,6 +26,10 @@ export class EpisodesService {
         orderBy: { publishedAt: 'desc' },
         skip,
         take: limit,
+        include: {
+          guests: true,
+          insideJokes: true,
+        },
       }),
       this.prisma.episode.count({
         where: platformType
