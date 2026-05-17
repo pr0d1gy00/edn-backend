@@ -27,7 +27,7 @@ export class EpisodesController {
 
   @Get()
   findAll(@Query() query: QueryEpisodeDto) {
-    return this.episodesService.findAll(query.platformType);
+    return this.episodesService.findAll(query.platformType, query.page, query.limit);
   }
 
   @Get(':id')

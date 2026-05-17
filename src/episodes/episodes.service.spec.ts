@@ -41,6 +41,7 @@ describe('EpisodesService', () => {
       create: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
+      count: jest.fn(),
     },
     guest: {
       findUnique: jest.fn(),
@@ -161,37 +162,67 @@ describe('EpisodesService', () => {
   });
 
   describe('findAll', () => {
-    it('should return all episodes ordered by publishedAt desc', async () => {
+    it('should return paginated episodes ordered by publishedAt desc', async () => {
       const episodes = [mockEpisode, { ...mockEpisode, id: 'ep-2' }];
       mockPrismaService.episode.findMany.mockResolvedValue(episodes);
+      mockPrismaService.episode.count.mockResolvedValue(2);
 
-      const result = await service.findAll();
+      const result = await service.findAll(undefined, 1, 10);
 
-      expect(result).toEqual(episodes);
+      expect(result.data).toEqual(episodes);
+      expect(result.meta.total).toBe(2);
+      expect(result.meta.page).toBe(1);
+      expect(result.meta.limit).toBe(10);
+      expect(result.meta.totalPages).toBe(1);
       expect(mockPrismaService.episode.findMany).toHaveBeenCalledWith({
         where: undefined,
         orderBy: { publishedAt: 'desc' },
+        skip: 0,
+        take: 10,
       });
     });
 
     it('should filter by platformType when provided', async () => {
       mockPrismaService.episode.findMany.mockResolvedValue([mockEpisode]);
+      mockPrismaService.episode.count.mockResolvedValue(1);
 
-      const result = await service.findAll('YOUTUBE');
+      const result = await service.findAll('YOUTUBE', 1, 10);
 
-      expect(result).toEqual([mockEpisode]);
+      expect(result.data).toEqual([mockEpisode]);
       expect(mockPrismaService.episode.findMany).toHaveBeenCalledWith({
         where: { platformType: 'YOUTUBE' },
         orderBy: { publishedAt: 'desc' },
+        skip: 0,
+        take: 10,
       });
     });
 
-    it('should return empty array when no episodes exist', async () => {
+    it('should return paginated empty array when no episodes exist', async () => {
       mockPrismaService.episode.findMany.mockResolvedValue([]);
+      mockPrismaService.episode.count.mockResolvedValue(0);
 
-      const result = await service.findAll();
+      const result = await service.findAll(undefined, 1, 10);
 
-      expect(result).toEqual([]);
+      expect(result.data).toEqual([]);
+      expect(result.meta.total).toBe(0);
+      expect(result.meta.totalPages).toBe(0);
+    });
+
+    it('should correctly calculate skip for page 2', async () => {
+      mockPrismaService.episode.findMany.mockResolvedValue([mockEpisode]);
+      mockPrismaService.episode.count.mockResolvedValue(15);
+
+      const result = await service.findAll(undefined, 2, 5);
+
+      expect(result.meta.page).toBe(2);
+      expect(result.meta.limit).toBe(5);
+      expect(result.meta.totalPages).toBe(3);
+      expect(mockPrismaService.episode.findMany).toHaveBeenCalledWith({
+        where: undefined,
+        orderBy: { publishedAt: 'desc' },
+        skip: 5,
+        take: 5,
+      });
     });
   });
 

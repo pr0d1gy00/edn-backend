@@ -16,13 +16,33 @@ export class EpisodesService {
     private readonly media: MediaService,
   ) {}
 
-  async findAll(platformType?: string): Promise<Episode[]> {
-    return this.prisma.episode.findMany({
-      where: platformType
-        ? { platformType: platformType as any }
-        : undefined,
-      orderBy: { publishedAt: 'desc' },
-    });
+  async findAll(platformType?: string, page = 1, limit = 10) {
+    const skip = (page - 1) * limit;
+    const [episodes, total] = await Promise.all([
+      this.prisma.episode.findMany({
+        where: platformType
+          ? { platformType: platformType as any }
+          : undefined,
+        orderBy: { publishedAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.episode.count({
+        where: platformType
+          ? { platformType: platformType as any }
+          : undefined,
+      }),
+    ]);
+
+    return {
+      data: episodes,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   async findOne(id: string): Promise<Episode & { guests: Guest[] }> {
