@@ -17,11 +17,9 @@ export class CreateStoryDto {
   content: string;
 
   @IsOptional()
-  @IsString()
-  @MaxLength(50)
-  category?: string;
-
-  @IsOptional()
   @IsUUID()
   userId?: string;
+
+  @IsUUID()
+  promptId: string;
 }

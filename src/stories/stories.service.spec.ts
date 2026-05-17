@@ -1,7 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { StoriesService } from './stories.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { NotFoundException } from '@nestjs/common';
+import { StoryPromptsService } from '../story-prompts/story-prompts.service';
+import { NotFoundException, BadRequestException } from '@nestjs/common';
 
 describe('StoriesService', () => {
   let service: StoriesService;
@@ -10,9 +11,9 @@ describe('StoriesService', () => {
   const mockStory = {
     id: 'story-123',
     userId: 'user-456',
+    promptId: 'prompt-123',
     title: 'Test Story',
     content: 'This is a test story content',
-    category: 'funny',
     submittedAt: new Date('2025-01-01'),
     isApproved: true,
     _count: { votes: 3 },
@@ -36,10 +37,15 @@ describe('StoriesService', () => {
     communityStory: {
       findMany: jest.fn(),
       findUnique: jest.fn(),
+      findFirst: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
     },
+  };
+
+  const mockStoryPromptsService = {
+    isPromptOpen: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -49,6 +55,10 @@ describe('StoriesService', () => {
         {
           provide: PrismaService,
           useValue: mockPrismaService,
+        },
+        {
+          provide: StoryPromptsService,
+          useValue: mockStoryPromptsService,
         },
       ],
     }).compile();
@@ -63,22 +73,26 @@ describe('StoriesService', () => {
     const createDto = {
       title: 'New Story',
       content: 'Some content',
-      category: 'funny',
       userId: 'user-456',
+      promptId: 'prompt-123',
     };
 
-    it('should create a story with userId', async () => {
+    it('should create a story with userId and promptId', async () => {
+      mockStoryPromptsService.isPromptOpen.mockResolvedValue(true);
       mockPrismaService.communityStory.create.mockResolvedValue(mockStory);
 
       const result = await service.create(createDto);
 
       expect(result).toEqual(mockStory);
+      expect(mockStoryPromptsService.isPromptOpen).toHaveBeenCalledWith(
+        'prompt-123',
+      );
       expect(mockPrismaService.communityStory.create).toHaveBeenCalledWith({
         data: {
           title: 'New Story',
           content: 'Some content',
-          category: 'funny',
           userId: 'user-456',
+          promptId: 'prompt-123',
         },
         include: {
           _count: { select: { votes: true } },
@@ -91,7 +105,9 @@ describe('StoriesService', () => {
       const anonDto = {
         title: 'Anon Story',
         content: 'Anonymous content',
+        promptId: 'prompt-123',
       };
+      mockStoryPromptsService.isPromptOpen.mockResolvedValue(true);
       mockPrismaService.communityStory.create.mockResolvedValue({
         ...mockStory,
         userId: null,
@@ -105,8 +121,8 @@ describe('StoriesService', () => {
         data: {
           title: 'Anon Story',
           content: 'Anonymous content',
-          category: null,
           userId: null,
+          promptId: 'prompt-123',
         },
         include: {
           _count: { select: { votes: true } },
@@ -114,17 +130,32 @@ describe('StoriesService', () => {
         },
       });
     });
+
+    it('should throw BadRequestException when prompt is closed', async () => {
+      mockStoryPromptsService.isPromptOpen.mockResolvedValue(false);
+
+      await expect(service.create(createDto)).rejects.toThrow(
+        BadRequestException,
+      );
+      await expect(service.create(createDto)).rejects.toThrow(
+        'This story prompt is no longer accepting submissions',
+      );
+      expect(mockPrismaService.communityStory.create).not.toHaveBeenCalled();
+    });
   });
 
   describe('findAll', () => {
-    it('should return only approved stories with _count', async () => {
+    it('should return only approved stories from public prompts', async () => {
       mockPrismaService.communityStory.findMany.mockResolvedValue([mockStory]);
 
       const result = await service.findAll();
 
       expect(result).toEqual([mockStory]);
       expect(mockPrismaService.communityStory.findMany).toHaveBeenCalledWith({
-        where: { isApproved: true },
+        where: {
+          isApproved: true,
+          prompt: { isPublic: true },
+        },
         include: {
           _count: { select: { votes: true } },
           user: true,
@@ -142,15 +173,37 @@ describe('StoriesService', () => {
     });
   });
 
+  describe('findAllAdmin', () => {
+    it('should return all approved stories regardless of prompt visibility', async () => {
+      mockPrismaService.communityStory.findMany.mockResolvedValue([mockStory]);
+
+      const result = await service.findAllAdmin();
+
+      expect(result).toEqual([mockStory]);
+      expect(mockPrismaService.communityStory.findMany).toHaveBeenCalledWith({
+        where: { isApproved: true },
+        include: {
+          _count: { select: { votes: true } },
+          user: true,
+        },
+        orderBy: { submittedAt: 'desc' },
+      });
+    });
+  });
+
   describe('findOne', () => {
-    it('should return an approved story with _count', async () => {
-      mockPrismaService.communityStory.findUnique.mockResolvedValue(mockStory);
+    it('should return an approved story from a public prompt', async () => {
+      mockPrismaService.communityStory.findFirst.mockResolvedValue(mockStory);
 
       const result = await service.findOne('story-123');
 
       expect(result).toEqual(mockStory);
-      expect(mockPrismaService.communityStory.findUnique).toHaveBeenCalledWith({
-        where: { id: 'story-123' },
+      expect(mockPrismaService.communityStory.findFirst).toHaveBeenCalledWith({
+        where: {
+          id: 'story-123',
+          isApproved: true,
+          prompt: { isPublic: true },
+        },
         include: {
           _count: { select: { votes: true } },
           user: true,
@@ -159,26 +212,56 @@ describe('StoriesService', () => {
     });
 
     it('should throw NotFoundException for an unapproved story', async () => {
-      mockPrismaService.communityStory.findUnique.mockResolvedValue(
-        mockUnapprovedStory,
-      );
+      mockPrismaService.communityStory.findFirst.mockResolvedValue(null);
 
       await expect(service.findOne('story-unapproved')).rejects.toThrow(
         NotFoundException,
       );
-      await expect(service.findOne('story-unapproved')).rejects.toThrow(
-        'Story with ID "story-unapproved" not found',
+    });
+
+    it('should throw NotFoundException when story is from a private prompt', async () => {
+      mockPrismaService.communityStory.findFirst.mockResolvedValue(null);
+
+      await expect(service.findOne('story-private-prompt')).rejects.toThrow(
+        NotFoundException,
       );
     });
 
     it('should throw NotFoundException when story does not exist', async () => {
-      mockPrismaService.communityStory.findUnique.mockResolvedValue(null);
+      mockPrismaService.communityStory.findFirst.mockResolvedValue(null);
 
       await expect(service.findOne('nonexistent')).rejects.toThrow(
         NotFoundException,
       );
       await expect(service.findOne('nonexistent')).rejects.toThrow(
         'Story with ID "nonexistent" not found',
+      );
+    });
+  });
+
+  describe('findOneAdmin', () => {
+    it('should return any story regardless of approval or prompt visibility', async () => {
+      mockPrismaService.communityStory.findUnique.mockResolvedValue(
+        mockUnapprovedStory,
+      );
+
+      const result = await service.findOneAdmin('story-unapproved');
+
+      expect(result).toEqual(mockUnapprovedStory);
+      expect(mockPrismaService.communityStory.findUnique).toHaveBeenCalledWith({
+        where: { id: 'story-unapproved' },
+        include: {
+          _count: { select: { votes: true } },
+          user: true,
+        },
+      });
+    });
+
+    it('should throw NotFoundException when story does not exist', async () => {
+      mockPrismaService.communityStory.findUnique.mockResolvedValue(null);
+
+      await expect(service.findOneAdmin('nonexistent')).rejects.toThrow(
+        NotFoundException,
       );
     });
   });

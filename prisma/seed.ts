@@ -23,6 +23,7 @@ async function main() {
   await prisma.insideJoke.deleteMany();
   await prisma.media.deleteMany();
   await prisma.communityStory.deleteMany();
+  await prisma.storyPrompt.deleteMany();
   await prisma.episode.deleteMany();
   await prisma.guest.deleteMany();
   await prisma.tourShow.deleteMany();
@@ -121,14 +122,73 @@ async function main() {
   await prisma.tourShow.createMany({ data: tourData });
   console.log(`✅ Created ${tourData.length} tour shows`);
 
+  // ── STORY PROMPTS (6) ─────────────────────────
+  const storyPromptsData = [
+    {
+      id: generateId('3', 1),
+      title: 'Cuéntanos tu historia más divertida',
+      description: 'Comparte la anécdota más graciosa que hayas vivido recientemente',
+      isOpen: true,
+      isPublic: true,
+      opensAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 1 week ago
+      closesAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 1 week from now
+    },
+    {
+      id: generateId('3', 2),
+      title: 'Momentos incómodos en el trabajo',
+      description: 'Esa situación laboral que no sabes si reír o llorar',
+      isOpen: true,
+      isPublic: false,
+      opensAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+      closesAt: new Date(Date.now() + 10 * 24 * 60 * 60 * 1000),
+    },
+    {
+      id: generateId('3', 3),
+      title: 'Fails épicos en citas',
+      description: 'Lo peor que te ha pasado en una cita romántica',
+      isOpen: false,
+      isPublic: true,
+      opensAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+      closesAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
+    },
+    {
+      id: generateId('3', 4),
+      title: 'La vez que casi muero de vergüenza',
+      description: 'Historias de vergüenza ajena nivel experto',
+      isOpen: true,
+      isPublic: false,
+      opensAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+      closesAt: null,
+    },
+    {
+      id: generateId('3', 5),
+      title: 'Encuentros random con famosos',
+      description: '¿Te encontraste con alguien famoso en el lugar más inesperado?',
+      isOpen: true,
+      isPublic: true,
+      opensAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+      closesAt: null,
+    },
+    {
+      id: generateId('3', 6),
+      title: 'Desastres culinarios',
+      description: 'Cuando la cocina se convierte en zona de desastre',
+      isOpen: false,
+      isPublic: false,
+      opensAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
+      closesAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+    },
+  ];
+  await prisma.storyPrompt.createMany({ data: storyPromptsData });
+  console.log(`✅ Created ${storyPromptsData.length} story prompts`);
+
   // ── COMMUNITY STORIES (25) ───────────────────────
-  const storyCategories = ['Bad dates', 'Awkward moments', 'Funny fails', 'Random encounters', 'Workplace disasters'];
   const storiesData = Array.from({ length: 25 }).map((_, i) => ({
     id: generateId('e', i + 1),
     userId: i % 3 === 0 ? null : usersData[(i % (usersData.length - 1)) + 1].id, // 1/3 anonymous, 2/3 authenticated
     title: `Historia loca de la comunidad #${i + 1}`,
     content: `Esta es la historia detallada número ${i + 1}. Me pasó algo muy gracioso y fuera de contexto, así que lo quería compartir con la comunidad de EDN. Sucedió hace un par de semanas y no me lo puedo sacar de la cabeza.`,
-    category: storyCategories[i % storyCategories.length],
+    promptId: storyPromptsData[i % storyPromptsData.length].id,
     submittedAt: new Date(Date.now() - i * 24 * 60 * 60 * 1000),
     isApproved: i % 5 !== 0, // 80% approved
   }));

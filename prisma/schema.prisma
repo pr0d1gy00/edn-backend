@@ -105,17 +105,34 @@ enum TicketStatus {
   SOLD_OUT
 }
 
-// 6. COMMUNITY STORIES MODEL (For the "Wall of Shame" anonymous/public section)
+// 6. STORY PROMPT MODEL (Category that opens for stories during a time window)
+model StoryPrompt {
+  id          String    @id @default(uuid()) @db.Uuid
+  title       String    @map("title") @db.VarChar(150)
+  description String?   @map("description")
+  isOpen      Boolean   @default(false) @map("is_open")
+  isPublic    Boolean   @default(false) @map("is_public")
+  opensAt     DateTime? @map("opens_at") @db.Timestamptz
+  closesAt    DateTime? @map("closes_at") @db.Timestamptz
+
+  // Relations
+  stories     CommunityStory[]
+
+  @@map("story_prompts")
+}
+
+// 6b. COMMUNITY STORIES MODEL (For the "Wall of Shame" anonymous/public section)
 model CommunityStory {
   id                 String      @id @default(uuid()) @db.Uuid
   userId             String?     @map("user_id") @db.Uuid // NULL allows for 100% anonymous submissions
   title              String      @db.VarChar(150)
   content            String
-  category           String?     @db.VarChar(50) // e.g., 'Bad dates', 'Awkward moments'
   submittedAt        DateTime    @default(now()) @map("submitted_at") @db.Timestamptz
   isApproved         Boolean     @default(false) @map("is_approved") // Moderation queue flag
-  
+
   // Relations
+  promptId           String?     @map("prompt_id") @db.Uuid
+  prompt             StoryPrompt? @relation(fields: [promptId], references: [id], onDelete: SetNull)
   user               User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
   votes              StoryVote[]
 

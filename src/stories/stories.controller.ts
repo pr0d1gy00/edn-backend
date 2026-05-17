@@ -25,6 +25,20 @@ export class StoriesController {
     return this.storiesService.findAll();
   }
 
+  @Get('all')
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN')
+  findAllAdmin() {
+    return this.storiesService.findAllAdmin();
+  }
+
+  @Get(':id/admin')
+  @UseGuards(RolesGuard)
+  @Roles('ADMIN')
+  findOneAdmin(@Param('id') id: string) {
+    return this.storiesService.findOneAdmin(id);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.storiesService.findOne(id);
