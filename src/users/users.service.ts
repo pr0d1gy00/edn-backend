@@ -9,12 +9,63 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User } from '@prisma/client';
 
+export interface PaginatedUsers {
+  data: Omit<User, 'password' | 'refreshToken'>[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
+
 @Injectable()
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(): Promise<User[]> {
-    return this.prisma.user.findMany();
+  async findAll(
+    page = 1,
+    limit = 10,
+    search?: string,
+  ): Promise<PaginatedUsers> {
+    const skip = (page - 1) * limit;
+
+    const where = search
+      ? {
+          OR: [
+            { username: { contains: search, mode: 'insensitive' as const } },
+            { email: { contains: search, mode: 'insensitive' as const } },
+          ],
+        }
+      : {};
+
+    const [data, total] = await Promise.all([
+      this.prisma.user.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { username: 'asc' },
+        select: {
+          id: true,
+          username: true,
+          email: true,
+          avatarUrl: true,
+          role: true,
+          createdAt: true,
+        },
+      }),
+      this.prisma.user.count({ where }),
+    ]);
+
+    return {
+      data,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   async findOne(id: string): Promise<User> {

@@ -23,19 +23,21 @@ const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
 export class MediaService {
   private s3: S3Client;
   private bucket: string;
+  private publicUrl: string;
 
   constructor(private readonly prisma: PrismaService) {
+    const accountId = process.env.CLOUDFLARE_R2_ACCOUNT_ID ?? '';
     this.s3 = new S3Client({
-      region: process.env.IDRIVE_REGION ?? 'us-west-1',
-      endpoint:
-        process.env.IDRIVE_ENDPOINT ?? 'https://s3.us-west-1.idrivee2.com',
+      region: 'auto',
+      endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
       credentials: {
-        accessKeyId: process.env.IDRIVE_ACCESS_KEY ?? '',
-        secretAccessKey: process.env.IDRIVE_SECRET_KEY ?? '',
+        accessKeyId: process.env.CLOUDFLARE_R2_ACCESS_KEY_ID ?? '',
+        secretAccessKey: process.env.CLOUDFLARE_R2_SECRET_ACCESS_KEY ?? '',
       },
       forcePathStyle: true,
     });
-    this.bucket = process.env.IDRIVE_BUCKET ?? 'edn';
+    this.bucket = process.env.CLOUDFLARE_R2_BUCKET ?? 'edn';
+    this.publicUrl = process.env.CLOUDFLARE_R2_PUBLIC_URL ?? '';
   }
 
   async upload(
@@ -75,7 +77,7 @@ export class MediaService {
       );
     }
 
-    const url = `${process.env.IDRIVE_ENDPOINT ?? 'https://s3.us-west-1.idrivee2.com'}/${this.bucket}/${key}`;
+    const url = `${this.publicUrl}/${key}`;
 
     return this.prisma.media.create({
       data: {
@@ -124,6 +126,28 @@ export class MediaService {
       where: {
         entityType: mediaEntityType,
         entityId,
+      },
+      orderBy: { sortOrder: 'asc' },
+    });
+  }
+
+  async findAllByEntityIds(
+    entityType: string,
+    entityIds: string[],
+  ): Promise<Media[]> {
+    if (entityIds.length === 0) return [];
+
+    const mediaEntityType = entityType as MediaEntityType;
+    if (!Object.values(MediaEntityType).includes(mediaEntityType)) {
+      throw new BadRequestException(
+        `Invalid entityType: ${entityType}. Must be one of: ${Object.values(MediaEntityType).join(', ')}`,
+      );
+    }
+
+    return this.prisma.media.findMany({
+      where: {
+        entityType: mediaEntityType,
+        entityId: { in: entityIds },
       },
       orderBy: { sortOrder: 'asc' },
     });

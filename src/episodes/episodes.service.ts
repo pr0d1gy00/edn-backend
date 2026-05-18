@@ -7,7 +7,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { MediaService } from '../media/media.service';
 import { CreateEpisodeDto } from './dto/create-episode.dto';
 import { UpdateEpisodeDto } from './dto/update-episode.dto';
-import { Episode, Guest } from '@prisma/client';
+import { Episode, Guest, Media } from '@prisma/client';
 
 @Injectable()
 export class EpisodesService {
@@ -20,9 +20,7 @@ export class EpisodesService {
     const skip = (page - 1) * limit;
     const [episodes, total] = await Promise.all([
       this.prisma.episode.findMany({
-        where: platformType
-          ? { platformType: platformType as any }
-          : undefined,
+        where: platformType ? { platformType: platformType as any } : undefined,
         orderBy: { publishedAt: 'desc' },
         skip,
         take: limit,
@@ -32,14 +30,32 @@ export class EpisodesService {
         },
       }),
       this.prisma.episode.count({
-        where: platformType
-          ? { platformType: platformType as any }
-          : undefined,
+        where: platformType ? { platformType: platformType as any } : undefined,
       }),
     ]);
 
+    // Fetch all images for episodes in one query (avoid N+1)
+    const episodeIds = episodes.map((e) => e.id);
+    const allImages = await this.media.findAllByEntityIds('EPISODE', episodeIds);
+
+    // Group images by episodeId
+    const imagesByEpisodeId = allImages.reduce(
+      (acc, img) => {
+        if (!acc[img.entityId]) acc[img.entityId] = [];
+        acc[img.entityId].push(img);
+        return acc;
+      },
+      {} as Record<string, Media[]>,
+    );
+
+    // Attach images to each episode
+    const episodesWithImages = episodes.map((episode) => ({
+      ...episode,
+      images: imagesByEpisodeId[episode.id] ?? [],
+    }));
+
     return {
-      data: episodes,
+      data: episodesWithImages,
       meta: {
         total,
         page,
@@ -49,17 +65,23 @@ export class EpisodesService {
     };
   }
 
-  async findOne(id: string): Promise<Episode & { guests: Guest[] }> {
+  async findOne(
+    id: string,
+  ): Promise<Episode & { guests: Guest[] } & { images: Media[] }> {
     const episode = await this.prisma.episode.findUnique({
       where: { id },
-      include: { guests: true },
+      include: { guests: true, insideJokes: true },
     });
+    const images = await this.media.findByEntity('EPISODE', id);
 
     if (!episode) {
       throw new NotFoundException(`Episode with ID "${id}" not found`);
     }
 
-    return episode;
+    return {
+      ...episode,
+      images: images ? images.sort((a, b) => a.sortOrder - b.sortOrder) : [],
+    };
   }
 
   async create(dto: CreateEpisodeDto): Promise<Episode> {
@@ -70,11 +92,13 @@ export class EpisodesService {
           platformType: dto.platformType,
           contentUrl: dto.contentUrl,
           publishedAt: new Date(dto.publishedAt),
-          episodeNumber: dto.episodeNumber ?? null,
+          episodeNumber: dto.episodeNumber ? Number(dto.episodeNumber) : null,
           description: dto.description ?? null,
           thumbnailUrl: dto.thumbnailUrl ?? null,
           isExclusive: dto.isExclusive ?? false,
-          durationSeconds: dto.durationSeconds ?? null,
+          durationSeconds: dto.durationSeconds
+            ? Number(dto.durationSeconds)
+            : null,
         },
       });
 
@@ -120,10 +144,10 @@ export class EpisodesService {
             contentUrl: dto.contentUrl,
           }),
           ...(dto.publishedAt !== undefined && {
-            publishedAt: new Date(dto.publishedAt),
+            publishedAt: new Date(dto.publishedAt as unknown as string),
           }),
           ...(dto.episodeNumber !== undefined && {
-            episodeNumber: dto.episodeNumber,
+            episodeNumber: Number(dto.episodeNumber),
           }),
           ...(dto.description !== undefined && {
             description: dto.description,
@@ -132,10 +156,10 @@ export class EpisodesService {
             thumbnailUrl: dto.thumbnailUrl,
           }),
           ...(dto.isExclusive !== undefined && {
-            isExclusive: dto.isExclusive,
+            isExclusive: Boolean(dto.isExclusive),
           }),
           ...(dto.durationSeconds !== undefined && {
-            durationSeconds: dto.durationSeconds,
+            durationSeconds: Number(dto.durationSeconds),
           }),
         },
       });
@@ -182,9 +206,7 @@ export class EpisodesService {
     });
 
     if (!episode) {
-      throw new NotFoundException(
-        `Episode with ID "${episodeId}" not found`,
-      );
+      throw new NotFoundException(`Episode with ID "${episodeId}" not found`);
     }
 
     const guest = await this.prisma.guest.findUnique({
@@ -211,9 +233,7 @@ export class EpisodesService {
     });
 
     if (!episode) {
-      throw new NotFoundException(
-        `Episode with ID "${episodeId}" not found`,
-      );
+      throw new NotFoundException(`Episode with ID "${episodeId}" not found`);
     }
 
     return this.prisma.episode.update({
@@ -230,9 +250,7 @@ export class EpisodesService {
     });
 
     if (!episode) {
-      throw new NotFoundException(
-        `Episode with ID "${episodeId}" not found`,
-      );
+      throw new NotFoundException(`Episode with ID "${episodeId}" not found`);
     }
 
     return episode.guests;

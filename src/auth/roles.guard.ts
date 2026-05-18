@@ -1,4 +1,9 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Role } from '@prisma/client';
 import { ROLES_KEY } from './roles.decorator';
@@ -12,6 +17,7 @@ export class RolesGuard implements CanActivate {
       context.getHandler(),
       context.getClass(),
     ]);
+    console.log(requiredRoles);
 
     if (!requiredRoles || requiredRoles.length === 0) {
       return true;
@@ -19,10 +25,17 @@ export class RolesGuard implements CanActivate {
 
     const request = context.switchToHttp().getRequest();
     const user = request.user;
+    console.log('--- DEBUG ROLES GUARD ---');
+    console.log('Required Roles:', requiredRoles);
+    console.log('Auth Header:', request.headers.authorization);
+    console.log('User from Request:', user);
 
     // Resolve user role: first from request.user (JWT/auth middleware), fallback to X-User-Role header
     const userRole: string | undefined =
       user?.role || request.headers['x-user-role'];
+
+    console.log('Resolved User Role:', userRole);
+    console.log('-------------------------');
 
     if (!userRole) {
       throw new ForbiddenException('Access denied: user role not available');

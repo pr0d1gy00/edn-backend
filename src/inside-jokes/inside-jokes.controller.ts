@@ -17,6 +17,7 @@ import { UpdateInsideJokeDto } from './dto/update-inside-joke.dto';
 import { QueryInsideJokeDto } from './dto/query-inside-joke.dto';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 
 @Controller('inside-jokes')
 export class InsideJokesController {
@@ -33,7 +34,7 @@ export class InsideJokesController {
   }
 
   @Post()
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @HttpCode(HttpStatus.CREATED)
   create(@Body() dto: CreateInsideJokeDto) {
@@ -41,14 +42,14 @@ export class InsideJokesController {
   }
 
   @Patch(':id')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   update(@Param('id') id: string, @Body() dto: UpdateInsideJokeDto) {
     return this.insideJokesService.update(id, dto);
   }
 
   @Delete(':id')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   remove(@Param('id') id: string) {
     return this.insideJokesService.remove(id);
