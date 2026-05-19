@@ -4,7 +4,17 @@ import { MediaService } from '../media/media.service';
 import { CreateTourShowDto } from './dto/create-tour-show.dto';
 import { UpdateTourShowDto } from './dto/update-tour-show.dto';
 import { QueryTourShowDto } from './dto/query-tour-show.dto';
-import { TourShow } from '@prisma/client';
+import { TourShow, Media } from '@prisma/client';
+
+export interface PaginatedTourShows {
+  data: (TourShow & { images: Media[] })[];
+  meta: {
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  };
+}
 
 @Injectable()
 export class TourShowsService {
@@ -13,7 +23,7 @@ export class TourShowsService {
     private readonly media: MediaService,
   ) {}
 
-  async findAll(query: QueryTourShowDto): Promise<TourShow[]> {
+  async findAll(query: QueryTourShowDto): Promise<PaginatedTourShows> {
     const where: any = {};
 
     if (query.ticketStatus) {
@@ -24,13 +34,60 @@ export class TourShowsService {
       where.showDate = { gte: new Date() };
     }
 
-    return this.prisma.tourShow.findMany({
-      where,
-      orderBy: { showDate: 'asc' },
-    });
+    if (query.search) {
+      where.OR = [
+        { city: { contains: query.search, mode: 'insensitive' } },
+        { country: { contains: query.search, mode: 'insensitive' } },
+        { venueName: { contains: query.search, mode: 'insensitive' } },
+      ];
+    }
+
+    const page = query.page ?? 1;
+    const limit = query.limit ?? 10;
+    const skip = (page - 1) * limit;
+
+    const [tourShows, total] = await Promise.all([
+      this.prisma.tourShow.findMany({
+        where,
+        orderBy: { showDate: 'asc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.tourShow.count({ where }),
+    ]);
+
+    // Fetch images for all tour shows in one query
+    const tourShowIds = tourShows.map((ts) => ts.id);
+    const allImages = await this.media.findAllByEntityIds('TOUR_SHOW', tourShowIds);
+
+    // Group images by tourShowId
+    const imagesByTourShowId = allImages.reduce(
+      (acc, img) => {
+        if (!acc[img.entityId]) acc[img.entityId] = [];
+        acc[img.entityId].push(img);
+        return acc;
+      },
+      {} as Record<string, Media[]>,
+    );
+
+    // Attach images to each tour show
+    const tourShowsWithImages = tourShows.map((ts) => ({
+      ...ts,
+      images: (imagesByTourShowId[ts.id] ?? []).sort((a, b) => a.sortOrder - b.sortOrder),
+    }));
+
+    return {
+      data: tourShowsWithImages,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
-  async findOne(id: string): Promise<TourShow> {
+  async findOne(id: string): Promise<TourShow & { images: Media[] }> {
     const tourShow = await this.prisma.tourShow.findUnique({
       where: { id },
     });
@@ -39,7 +96,12 @@ export class TourShowsService {
       throw new NotFoundException(`TourShow with ID "${id}" not found`);
     }
 
-    return tourShow;
+    const images = await this.media.findByEntity('TOUR_SHOW', id);
+
+    return {
+      ...tourShow,
+      images: images.sort((a, b) => a.sortOrder - b.sortOrder),
+    };
   }
 
   async create(dto: CreateTourShowDto): Promise<TourShow> {
