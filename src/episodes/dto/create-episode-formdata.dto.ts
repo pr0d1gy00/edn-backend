@@ -37,4 +37,9 @@ export class CreateEpisodeFormDataDto {
   @IsOptional()
   @IsString()
   durationSeconds?: string;
+
+  /** JSON array of existing image IDs to keep: '["img-id-1","img-id-2"]' */
+  @IsOptional()
+  @IsString()
+  existingImageIds?: string;
 }

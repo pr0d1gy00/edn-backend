@@ -164,13 +164,27 @@ export class EpisodesService {
         },
       });
 
+      // Handle image cleanup: delete images not in existingImageIds
+      if (dto.existingImageIds !== undefined) {
+        const existingImages = await this.media.findByEntity('EPISODE', id);
+        const toDelete = existingImages.filter(
+          (img) => !dto.existingImageIds!.includes(img.id),
+        );
+        for (const img of toDelete) {
+          await this.media.remove(img.id);
+        }
+      }
+
       // Upload new images if provided
       if (dto.files && dto.files.length > 0) {
-        const sortOrders = dto.sortOrders ?? dto.files.map((_, i) => i);
+        // Calculate sortOrder offset based on existing images
+        const currentImages = await this.media.findByEntity('EPISODE', id);
+        const offset = currentImages.length;
+        const sortOrders = dto.sortOrders ?? dto.files.map((_, i) => offset + i);
         await this.uploadImages(updated.id, dto.files, sortOrders);
       }
 
-      return updated;
+      return this.findOne(updated.id);
     } catch (error: any) {
       if (error?.code === 'P2002') {
         const target = error.meta?.target as string[] | undefined;

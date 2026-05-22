@@ -1,11 +1,7 @@
-import { IsUUID, IsInt, IsIn, IsNotEmpty } from 'class-validator';
+import { IsIn, IsString } from 'class-validator';
 
 export class CreateVoteDto {
-  @IsUUID()
-  @IsNotEmpty()
-  userId: string;
-
-  @IsInt()
-  @IsIn([1, -1])
-  voteValue: number;
+  @IsString()
+  @IsIn(['1', '-1', '0'])
+  voteValue: string;
 }

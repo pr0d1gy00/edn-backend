@@ -58,7 +58,10 @@ export class TourShowsService {
 
     // Fetch images for all tour shows in one query
     const tourShowIds = tourShows.map((ts) => ts.id);
-    const allImages = await this.media.findAllByEntityIds('TOUR_SHOW', tourShowIds);
+    const allImages = await this.media.findAllByEntityIds(
+      'TOUR_SHOW',
+      tourShowIds,
+    );
 
     // Group images by tourShowId
     const imagesByTourShowId = allImages.reduce(
@@ -73,7 +76,9 @@ export class TourShowsService {
     // Attach images to each tour show
     const tourShowsWithImages = tourShows.map((ts) => ({
       ...ts,
-      images: (imagesByTourShowId[ts.id] ?? []).sort((a, b) => a.sortOrder - b.sortOrder),
+      images: (imagesByTourShowId[ts.id] ?? []).sort(
+        (a, b) => a.sortOrder - b.sortOrder,
+      ),
     }));
 
     return {
@@ -153,14 +158,28 @@ export class TourShowsService {
         ...(dto.longitude !== undefined && { longitude: dto.longitude }),
       },
     });
+    
+    // Handle image cleanup: delete images not in existingImageIds
+    if (dto.existingImageIds !== undefined) {
+      const existingImages = await this.media.findByEntity('TOUR_SHOW', id);
+      const toDelete = existingImages.filter(
+        (img) => !dto.existingImageIds!.includes(img.id),
+      );
+      for (const img of toDelete) {
+        await this.media.remove(img.id);
+      }
+    }
 
     // Upload new images if provided
     if (dto.files && dto.files.length > 0) {
-      const sortOrders = dto.sortOrders ?? dto.files.map((_, i) => i);
+      // Calculate sortOrder offset based on existing images
+      const existingImages = await this.media.findByEntity('TOUR_SHOW', id);
+      const offset = existingImages.length;
+      const sortOrders = dto.sortOrders ?? dto.files.map((_, i) => offset + i);
       await this.uploadImages(updated.id, dto.files, sortOrders);
     }
 
-    return updated;
+    return this.findOne(updated.id);
   }
 
   async remove(id: string): Promise<TourShow> {
@@ -181,7 +200,13 @@ export class TourShowsService {
     sortOrders: number[],
   ): Promise<void> {
     const uploadPromises = files.map((file, index) =>
-      this.media.upload(file, 'TOUR_SHOW', tourShowId, index === 0, sortOrders[index] ?? index),
+      this.media.upload(
+        file,
+        'TOUR_SHOW',
+        tourShowId,
+        index === 0,
+        sortOrders[index] ?? index,
+      ),
     );
     await Promise.all(uploadPromises);
   }

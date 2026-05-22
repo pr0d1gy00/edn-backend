@@ -87,6 +87,9 @@ export class EpisodesController {
       durationSeconds: formData.durationSeconds
         ? parseInt(formData.durationSeconds, 10)
         : undefined,
+      existingImageIds: formData.existingImageIds
+        ? JSON.parse(formData.existingImageIds)
+        : undefined,
     } as CreateEpisodeDto;
   }
 

@@ -82,6 +82,9 @@ export class TourShowsController {
       ticketUrl: formData.ticketUrl,
       latitude: formData.latitude ? parseFloat(formData.latitude) : undefined,
       longitude: formData.longitude ? parseFloat(formData.longitude) : undefined,
+      existingImageIds: formData.existingImageIds
+        ? JSON.parse(formData.existingImageIds)
+        : undefined,
     };
   }
 }

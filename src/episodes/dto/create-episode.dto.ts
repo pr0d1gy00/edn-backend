@@ -8,6 +8,7 @@ import {
   IsNotEmpty,
   MaxLength,
   Min,
+  IsArray,
 } from 'class-validator';
 import { PlatformType } from '@prisma/client';
 
@@ -56,4 +57,10 @@ export class CreateEpisodeDto {
   /** Sort order for each file, matching array index. Example: [0, 1, 2] */
   @IsOptional()
   sortOrders?: number[];
+
+  /** IDs of existing images to KEEP. Any image not in this list will be deleted. */
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  existingImageIds?: string[];
 }

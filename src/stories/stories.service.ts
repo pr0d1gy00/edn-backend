@@ -9,7 +9,13 @@ import { PrismaService } from '../prisma/prisma.service';
 import { StoryPromptsService } from '../story-prompts/story-prompts.service';
 import { CreateStoryDto } from './dto/create-story.dto';
 import { UpdateStoryDto } from './dto/update-story.dto';
+import { QueryStoryDto } from './dto/query-story.dto';
 import { CommunityStory } from '@prisma/client';
+
+export interface PaginatedStories {
+  data: (CommunityStory & { _count: { votes: number }; user: any })[];
+  meta: { total: number; page: number; limit: number; totalPages: number };
+}
 
 @Injectable()
 export class StoriesService {
@@ -22,32 +28,56 @@ export class StoriesService {
   /**
    * PUBLIC — only returns approved stories whose prompt is public.
    */
-  async findAll(): Promise<CommunityStory[]> {
-    return this.prisma.communityStory.findMany({
-      where: {
-        isApproved: true,
-        prompt: { isPublic: true },
-      },
-      include: {
-        _count: { select: { votes: true } },
-        user: true,
-      },
-      orderBy: { submittedAt: 'desc' },
-    });
+  async findAll(query: QueryStoryDto): Promise<PaginatedStories> {
+    const page = query.page ?? 1;
+    const limit = Math.min(query.limit ?? 10, 100);
+    const skip = (page - 1) * limit;
+
+    const where = {
+      isApproved: true,
+      prompt: { isPublic: true },
+      ...(query.category && { prompt: { slug: query.category } }),
+    };
+
+    const [stories, total] = await Promise.all([
+      this.prisma.communityStory.findMany({
+        where,
+        include: { _count: { select: { votes: true } }, user: true },
+        orderBy: { submittedAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.communityStory.count({ where }),
+    ]);
+
+    return {
+      data: stories,
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+    };
   }
 
   /**
    * ADMIN — returns all approved stories regardless of prompt visibility.
    */
-  async findAllAdmin(): Promise<CommunityStory[]> {
-    return this.prisma.communityStory.findMany({
-      where: { isApproved: true },
-      include: {
-        _count: { select: { votes: true } },
-        user: true,
-      },
-      orderBy: { submittedAt: 'desc' },
-    });
+  async findAllAdmin(query: QueryStoryDto): Promise<PaginatedStories> {
+    const page = query.page ?? 1;
+    const limit = Math.min(query.limit ?? 10, 100);
+    const skip = (page - 1) * limit;
+
+    const [stories, total] = await Promise.all([
+      this.prisma.communityStory.findMany({
+        include: { _count: { select: { votes: true } }, user: true },
+        orderBy: { submittedAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.communityStory.count(),
+    ]);
+
+    return {
+      data: stories,
+      meta: { total, page, limit, totalPages: Math.ceil(total / limit) },
+    };
   }
 
   /**
