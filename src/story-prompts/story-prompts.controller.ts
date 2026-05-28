@@ -16,6 +16,7 @@ import { CreateStoryPromptDto } from './dto/create-story-prompt.dto';
 import { UpdateStoryPromptDto } from './dto/update-story-prompt.dto';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
+import {JwtAuthGuard} from "../auth/jwt-auth.guard";
 
 @Controller('story-prompts')
 export class StoryPromptsController {
@@ -29,7 +30,7 @@ export class StoryPromptsController {
   }
 
   @Get('all')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   findAllAdmin(@Query('includeAll') includeAll?: string) {
     if (includeAll === 'true') {
@@ -44,7 +45,7 @@ export class StoryPromptsController {
   }
 
   @Post()
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @HttpCode(HttpStatus.CREATED)
   create(@Body() dto: CreateStoryPromptDto) {
@@ -52,42 +53,42 @@ export class StoryPromptsController {
   }
 
   @Patch(':id')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   update(@Param('id') id: string, @Body() dto: UpdateStoryPromptDto) {
     return this.storyPromptsService.update(id, dto);
   }
 
   @Post(':id/open')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   open(@Param('id') id: string) {
     return this.storyPromptsService.open(id);
   }
 
   @Post(':id/close')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   close(@Param('id') id: string) {
     return this.storyPromptsService.close(id);
   }
 
   @Post(':id/publish')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   publish(@Param('id') id: string) {
     return this.storyPromptsService.publish(id);
   }
 
   @Post(':id/unpublish')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   unpublish(@Param('id') id: string) {
     return this.storyPromptsService.unpublish(id);
   }
 
   @Delete(':id')
-  @UseGuards(RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   @HttpCode(HttpStatus.NO_CONTENT)
   async remove(@Param('id') id: string) {
