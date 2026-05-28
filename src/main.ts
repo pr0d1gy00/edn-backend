@@ -15,7 +15,7 @@ async function bootstrap() {
   app.enableCors({
     origin: [
       'http://localhost:3001', // Tu URL de desarrollo local (Ajusta el puerto si usas React/Vite/Angular)
-      'https://edn-frontend.vercel.app/', // Reemplaza esto con tu URL real
+      'https://edn-frontend.vercel.app',
     ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
